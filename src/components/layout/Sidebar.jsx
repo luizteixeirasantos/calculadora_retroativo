@@ -29,7 +29,7 @@ export default function Sidebar() {
         } md:translate-x-0 transition-transform duration-200`}
       >
         <div className="p-6 text-xl font-bold border-b border-gray-700">
-          RetroCalc
+          Calculadora de Retroativo Salarial
         </div>
 
         <nav className="flex flex-col p-4 gap-3">
