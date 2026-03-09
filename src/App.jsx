@@ -1,9 +1,23 @@
-import Calculator from "./components/Calculator";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+
+import Sidebar from "./components/layout/Sidebar";
+import Calculator from "./pages/Calculator";
+import History from "./pages/History";
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <Calculator />
-    </div>
+    <BrowserRouter>
+      <div className="flex min-h-screen bg-gray-100">
+        <Sidebar />
+
+        <div className="flex-1 md:ml-64 p-6">
+          <Routes>
+            <Route path="/" element={<Calculator />} />
+
+            <Route path="/history" element={<History />} />
+          </Routes>
+        </div>
+      </div>
+    </BrowserRouter>
   );
 }

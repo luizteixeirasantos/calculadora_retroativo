@@ -1,25 +1,27 @@
-export default function useHistory() {
-  function saveCalculation(calc) {
-    const history = JSON.parse(localStorage.getItem("calcHistory")) || [];
+import {
+  saveCalculation,
+  getAllCalculations,
+  clearCalculations,
+} from "../db/historyDB";
 
-    history.unshift({
+export default function useHistory() {
+  async function addCalculation(calc) {
+    await saveCalculation({
       ...calc,
       date: new Date().toLocaleString(),
     });
-
-    localStorage.setItem("calcHistory", JSON.stringify(history));
   }
 
-  function getHistory() {
-    return JSON.parse(localStorage.getItem("calcHistory")) || [];
+  async function getHistory() {
+    return await getAllCalculations();
   }
 
-  function clearHistory() {
-    localStorage.removeItem("calcHistory");
+  async function clearHistory() {
+    await clearCalculations();
   }
 
   return {
-    saveCalculation,
+    addCalculation,
     getHistory,
     clearHistory,
   };
