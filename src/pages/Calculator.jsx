@@ -1,163 +1,231 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import jsPDF from "jspdf";
+import * as XLSX from "xlsx";
 
-import { calculateRetroactive } from "../utils/calculateRetroactive";
-
-import ChartResult from "../components/ChartResult";
-import ExportPDF from "../components/ExportPDF";
-import ExportExcel from "../components/ExportExcel";
-import ResultCards from "../components/ResultCard";
-
-import useHistory from "../hooks/useHistory";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 export default function Calculator() {
-  const [oldSalary, setOldSalary] = useState("");
-  const [newSalary, setNewSalary] = useState("");
-  const [retroMonths, setRetroMonths] = useState("");
-  const [months13, setMonths13] = useState("");
-  const [inss, setInss] = useState(7.82);
+  const [salarioAnterior, setSalarioAnterior] = useState("");
+  const [salarioAtual, setSalarioAtual] = useState("");
+  const [mesesRetroativo, setMesesRetroativo] = useState("");
+  const [mesesDecimo, setMesesDecimo] = useState("");
 
-  const [discounts, setDiscounts] = useState([]);
+  const [inssPercent, setInssPercent] = useState(0);
 
-  const [result, setResult] = useState(null);
+  const [retroativo, setRetroativo] = useState(0);
+  const [decimo, setDecimo] = useState(0);
+  const [inssValue, setInssValue] = useState(0);
+  const [totalLiquido, setTotalLiquido] = useState(0);
 
-  const { addCalculation } = useHistory();
+  const [history, setHistory] = useState([]);
 
-  function addDiscount() {
-    setDiscounts([...discounts, { name: "", value: "" }]);
+  function getAliquotaINSS(salario) {
+    if (salario <= 1412) return 7.5;
+    if (salario <= 2666.68) return 9;
+    if (salario <= 4000.03) return 12;
+    if (salario <= 7786.02) return 14;
+
+    return 14;
   }
 
-  function updateDiscount(index, field, value) {
-    const updated = [...discounts];
+  useEffect(() => {
+    if (!salarioAtual) return;
 
-    updated[index][field] = value;
+    const aliquota = getAliquotaINSS(Number(salarioAtual));
 
-    setDiscounts(updated);
+    setInssPercent(aliquota);
+  }, [salarioAtual]);
+
+  function calcular() {
+    const anterior = Number(salarioAnterior);
+    const atual = Number(salarioAtual);
+
+    const mesesRetro = Number(mesesRetroativo);
+    const meses13 = Number(mesesDecimo);
+
+    const diferenca = atual - anterior;
+
+    const retro = diferenca * mesesRetro;
+
+    const decimoTerceiro = (diferenca / 12) * meses13;
+
+    const inss = retro * (inssPercent / 100);
+
+    const liquido = retro + decimoTerceiro - inss;
+
+    setRetroativo(retro);
+    setDecimo(decimoTerceiro);
+    setInssValue(inss);
+    setTotalLiquido(liquido);
+
+    const novo = {
+      date: new Date().toLocaleDateString(),
+      anterior,
+      atual,
+      mesesRetro,
+      meses13,
+      retro,
+      decimoTerceiro,
+      inss,
+      liquido,
+    };
+
+    const newHistory = [...history, novo];
+
+    setHistory(newHistory);
+
+    localStorage.setItem("history", JSON.stringify(newHistory));
   }
 
-  async function handleCalculate() {
-    const calc = calculateRetroactive({
-      oldSalary: Number(oldSalary),
-      newSalary: Number(newSalary),
+  function exportPDF() {
+    const doc = new jsPDF();
 
-      retroMonths: Number(retroMonths),
+    doc.text("Resultado do cálculo", 20, 20);
 
-      months13: Number(months13),
+    doc.text(`Retroativo: R$ ${retroativo.toFixed(2)}`, 20, 40);
+    doc.text(`13º: R$ ${decimo.toFixed(2)}`, 20, 50);
+    doc.text(`INSS: R$ ${inssValue.toFixed(2)}`, 20, 60);
+    doc.text(`Total Líquido: R$ ${totalLiquido.toFixed(2)}`, 20, 70);
 
-      inss: Number(inss),
-
-      discounts,
-    });
-
-    setResult(calc);
-
-    await addCalculation(calc);
+    doc.save("calculo.pdf");
   }
+
+  function exportExcel() {
+    const data = [
+      {
+        Retroativo: retroativo,
+        Decimo: decimo,
+        INSS: inssValue,
+        Liquido: totalLiquido,
+      },
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(wb, ws, "Resultado");
+
+    XLSX.writeFile(wb, "calculo.xlsx");
+  }
+
+  const chartData = [
+    { name: "Retroativo", value: retroativo },
+    { name: "13º", value: decimo },
+    { name: "INSS", value: inssValue },
+    { name: "Líquido", value: totalLiquido },
+  ];
 
   return (
-    <div className="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow">
-      <h1 className="text-2xl font-bold text-center mb-6">
-        Calculadora Retroativo Salarial
-      </h1>
+    <div className="p-6 max-w-4xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6">Calculadora de Retroativo</h1>
 
-      <div className="grid md:grid-cols-2 gap-4">
-        <div>
-          <label className="font-semibold">Salário Antigo</label>
+      <div className="grid md:grid-cols-1 gap-4">
 
-          <input
-            type="number"
-            className="border p-2 rounded w-full"
-            onChange={(e) => setOldSalary(e.target.value)}
-          />
-        </div>
+        <label className="font-semibold">Salário Antigo</label>
+        <input
+          type="number"
+          placeholder="Salário anterior"
+          value={salarioAnterior}
+          onChange={(e) => setSalarioAnterior(e.target.value)}
+          className="border p-3 rounded w-full border-black"
+        />
+        
+        <label className="font-semibold">Salário Atual</label>
+        <input
+          type="number"
+          placeholder="Salário atual"
+          value={salarioAtual}
+          onChange={(e) => setSalarioAtual(e.target.value)}
+          className="border p-3 rounded w-full border-black"
+        />
 
-        <div>
-          <label className="font-semibold">Salário Novo</label>
+        <label className="font-semibold">Meses Retroativos</label>
+        <input
+          type="number"
+          placeholder="Meses retroativos"
+          value={mesesRetroativo}
+          onChange={(e) => setMesesRetroativo(e.target.value)}
+          className="border p-3 rounded w-full border-black"
+        />
 
-          <input
-            type="number"
-            className="border p-2 rounded w-full"
-            onChange={(e) => setNewSalary(e.target.value)}
-          />
-        </div>
+        <label className="font-semibold">Meses para 13º</label>
+        <input
+          type="number"
+          placeholder="Meses para 13º"
+          value={mesesDecimo}
+          onChange={(e) => setMesesDecimo(e.target.value)}
+          className="border p-3 rounded w-full border-black"
+        />
 
-        <div>
-          <label className="font-semibold">Meses Retroativo</label>
-
-          <input
-            type="number"
-            className="border p-2 rounded w-full"
-            onChange={(e) => setRetroMonths(e.target.value)}
-          />
-        </div>
-
-        <div>
-          <label className="font-semibold">Meses para 13°</label>
-
-          <input
-            type="number"
-            className="border p-2 rounded w-full"
-            onChange={(e) => setMonths13(e.target.value)}
-          />
-        </div>
-
-        <div>
-          <label className="font-semibold">INSS (%)</label>
-
-          <input
-            type="number"
-            value={inss}
-            className="border p-2 rounded w-full"
-            onChange={(e) => setInss(e.target.value)}
-          />
-        </div>
+        <label className="font-semibold">INSS (%)</label>
+        <input
+          type="number"
+          value={inssPercent}
+          readOnly
+          className="border p-3 rounded w-full border-black bg-gray-100"
+        />
       </div>
 
-      <h2 className="font-bold mt-6">Descontos adicionais</h2>
-
       <button
-        onClick={addDiscount}
-        className="bg-green-500 text-white px-4 py-2 rounded mt-2"
-      >
-        Adicionar desconto
-      </button>
-
-      {discounts.map((d, index) => (
-        <div key={index} className="flex gap-2 mt-2">
-          <input
-            placeholder="Nome"
-            className="border p-2 rounded w-1/2"
-            onChange={(e) => updateDiscount(index, "name", e.target.value)}
-          />
-
-          <input
-            type="number"
-            placeholder="Valor"
-            className="border p-2 rounded w-1/2"
-            onChange={(e) => updateDiscount(index, "value", e.target.value)}
-          />
-        </div>
-      ))}
-
-      <button
-        onClick={handleCalculate}
-        className="bg-blue-600 text-white w-full mt-6 py-3 rounded"
+        onClick={calcular}
+        className="mt-4 bg-blue-600 text-white px-6 py-3 rounded"
       >
         Calcular
       </button>
 
-      {result && (
-        <div className="mt-8 space-y-6">
-          <ResultCards result={result} />
+      <div className="mt-8 grid md:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <p>
+            Retroativo: <b>R$ {retroativo.toFixed(2)}</b>
+          </p>
 
-          <ChartResult result={result} />
+          <p>
+            13º: <b>R$ {decimo.toFixed(2)}</b>
+          </p>
 
-          <div className="flex gap-4">
-            <ExportPDF result={result} />
+          <p>
+            INSS: <b>R$ {inssValue.toFixed(2)}</b>
+          </p>
 
-            <ExportExcel result={result} />
+          <p className="text-lg">
+            Total Líquido: <b>R$ {totalLiquido.toFixed(2)}</b>
+          </p>
+
+          <div className="flex gap-2 mt-4">
+            <button
+              onClick={exportPDF}
+              className="bg-red-500 text-white px-4 py-2 rounded"
+            >
+              Exportar PDF
+            </button>
+
+            <button
+              onClick={exportExcel}
+              className="bg-green-600 text-white px-4 py-2 rounded"
+            >
+              Exportar Excel
+            </button>
           </div>
         </div>
-      )}
+
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData}>
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="value" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
     </div>
   );
 }

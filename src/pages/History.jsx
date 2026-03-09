@@ -1,11 +1,25 @@
 import { useEffect, useState } from "react";
 import useHistory from "../hooks/useHistory";
+import ComparePanel from "../components/ComparePanel";
 
 export default function History() {
+
+  const [compare, setCompare] = useState([]);
+
   const { getHistory, clearHistory } = useHistory();
 
   const [history, setHistory] = useState([]);
   const [search, setSearch] = useState("");
+
+  function toggleCompare(item) {
+    if (compare.includes(item)) {
+      setCompare(compare.filter((c) => c !== item));
+    } else {
+      if (compare.length < 2) {
+        setCompare([...compare, item]);
+      }
+    }
+  }
 
 useEffect(() => {
   async function load() {
