@@ -51,6 +51,13 @@ export default function Sidebar() {
             className="hover:bg-gray-800 p-2 rounded"
             onClick={() => setOpen(false)}
           >
+            Calculadora Retroativo
+          </Link>
+
+          <Link
+            to="/simple-calculator"
+            className="hover:bg-gray-800 p-2 rounded"
+          >
             Calculadora
           </Link>
 

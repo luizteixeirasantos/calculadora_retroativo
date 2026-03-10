@@ -1,8 +1,9 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import Sidebar from "./components/layout/Sidebar";
 import Calculator from "./pages/Calculator";
 import History from "./pages/History";
+import SimpleCalculator from "./pages/SimpleCalculator";
 
 export default function App() {
   return (
@@ -13,7 +14,7 @@ export default function App() {
         <div className="flex-1 md:ml-64 p-6">
           <Routes>
             <Route path="/" element={<Calculator />} />
-
+            <Route path="/simple-calculator" element={<SimpleCalculator />} />
             <Route path="/history" element={<History />} />
           </Routes>
         </div>
