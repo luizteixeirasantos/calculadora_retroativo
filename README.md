@@ -75,30 +75,6 @@ Projeto criado com foco em **boas práticas de desenvolvimento front-end**, **UX
 
 ---
 
-# 📂 Estrutura do projeto
-
-```
-src
- ├── components
- │   ├── Sidebar.jsx
- │   ├── Navbar.jsx
- │
- ├── pages
- │   ├── Calculator.jsx
- │   ├── History.jsx
- │
- ├── utils
- │   ├── inssTable.js
- │
- ├── services
- │   ├── calculationEngine.js
- │
- ├── App.jsx
- ├── main.jsx
-```
-
----
-
 # ⚙️ Instalação
 
 Clone o repositório:
